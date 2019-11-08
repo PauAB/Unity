@@ -3,7 +3,7 @@
 public class GameManager : MonoBehaviour
 {
 
-    int maxPlayers = 5;
+    const int maxPlayers = 5;
 
     Player player;
     Player player2;

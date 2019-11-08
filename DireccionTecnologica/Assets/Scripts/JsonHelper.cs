@@ -12,7 +12,7 @@ public class JsonHelper
     }
 
     public static string ArrayToJson<T>(T[] array)
-    {
+    {        
         Wrapper<T> wrapper = new Wrapper<T>();
         wrapper.array = array;        
 
