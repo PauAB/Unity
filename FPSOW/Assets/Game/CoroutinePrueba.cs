@@ -22,14 +22,7 @@ public class CoroutinePrueba : MonoBehaviour
     {
         abilityCD = StartCoroutine(abilityCooldown());
         
-        StopCoroutine(abilityCD);
-
-        Debug.Log("hello");
-
-        
-
-        
-        
+        StopCoroutine(abilityCD);        
     }
 
     // Update is called once per frame

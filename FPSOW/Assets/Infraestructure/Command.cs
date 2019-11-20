@@ -11,7 +11,7 @@ public class Command : MonoBehaviour
     }
     public virtual void Execute()
     {
-        Debug.Log("Input");
+        //Debug.Log("Input");
     }
  
 }

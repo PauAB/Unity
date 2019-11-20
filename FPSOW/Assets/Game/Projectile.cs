@@ -13,7 +13,5 @@ public class Projectile : MonoBehaviour,IEntity
     {
 
     }
-
-
   
 }

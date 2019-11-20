@@ -20,6 +20,9 @@ public class FirstPersonCharacter : MonoBehaviour,IEntity
     [SerializeField]
     public CharacterMove move;
 
+    Reload reloadCmd;
+    Shoot shootCmd;
+
     void setCharacter()
     {
         abilities = new Ability[numAbilities];
@@ -41,17 +44,59 @@ public class FirstPersonCharacter : MonoBehaviour,IEntity
         InputManager.SetInputs("useAbility_1", abilities[0]);
         InputManager.SetInputs("useAbility_2", abilities[1]);
         InputManager.SetInputs("useAbility_3", abilities[2]);
+        InputManager.SetInputs("Reload", reloadCmd);
+        //InputManager.SetInputs("Fire1", shootCmd);
     }
 
     public void EAwake()
     {
+        reloadCmd = new Reload();
+        shootCmd = new Shoot();
+
         setCharacter();
+       
+        reloadCmd.SetReload(reloadCR());
+        shootCmd.SetShoot(shootCR());
     }
 
     public void EUpdate(float delta)
     {
-       
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            actualBullets = 0;
+            Debug.Log(actualBullets);
+        }
     }
 
-  
+    IEnumerator shootCR()
+    {
+        while(true)
+        {
+            yield return null;
+        }
+    }
+
+    IEnumerator reloadCR()
+    {      
+        while (true)
+        {
+            if (Input.GetButtonDown("Reload"))
+            {
+                reloading = true;
+
+                yield return new WaitForSeconds(reloadingTime);
+
+                actualBullets = totalBullets;
+
+                Debug.Log(actualBullets);
+            }
+
+            reloading = false;
+
+            Debug.Log("reloadCR");
+
+            yield return null;
+        }
+    }
+
 }
