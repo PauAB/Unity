@@ -7,16 +7,13 @@ using UnityEngine;
 public class AI_controller : MonoBehaviour
 {
    
-    public AI_Agent agent; // pointer in c++
+    public AI_Agent agent;
    
-
-    // Start is called before the first frame update
     void Start()
     {
         
     }
-
-    // Update is called once per frame
+    
     void Update()
     {
         //ASSERT

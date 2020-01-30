@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
-
 public class patrol : AI_Agent
 {
     Vector3[] waypoints;
-    Transform target; 
+    Transform target;
     public int maxWaypoints = 10;
     int actualWaypoint = 0;
+
+    public float angularVelocity = 0.1f;
+    public float speed = 1f;
 
     void initPositions()
     {
@@ -27,7 +28,7 @@ public class patrol : AI_Agent
 
     private void OnDrawGizmos()
     {
-        if (waypoints.Length > 0)
+        if (UnityEditor.EditorApplication.isPlaying)
         {
             for (int i = 0; i < maxWaypoints; i++)
             {
@@ -38,42 +39,49 @@ public class patrol : AI_Agent
 
     void idle()
     {
-        
         if(Input.GetKeyDown(KeyCode.A))
         {
             setState(getState("goto")) ;
         }
     }
 
-
-    
     void goToWaypoint()
     {
-        Debug.Log("waypointHey");
+        Debug.Log("Moving to waypoint");
+
+        float maxAngle = Vector3.SignedAngle(Vector3.forward, waypoints[actualWaypoint] - transform.position, Vector3.up);
+        float angleToGo = Mathf.Min(angularVelocity * Mathf.Sign(maxAngle), maxAngle);
+
+        transform.rotation = Quaternion.Euler(Vector3.up * angleToGo);
+        
+        //float angleToGo = Mathf.Min(angularVelocity, Vector3.SignedAngle(Vector3.forward, waypoints[actualWaypoint] - transform.position, Vector3.up));
+        //transform.rotation = Quaternion.Euler(new Vector3(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angleToGo, transform.rotation.eulerAngles.z));
+
+        //transform.position += Vector3.forward * speed;
+
+        //if ((waypoints[actualWaypoint] - transform.position).x <= 0.1)
+        //{
+        //    setState(getState("nextwp"));
+        //}
     }
 
     void calculateNextWaypoint()
     {
-
+        actualWaypoint++;
     }
-    // Start is called before the first frame update
+    
     void Start()
     {
-        //states["idle"] = idle;
-        //states["goto"] = goToWaypoint;
-        //states["nextwp"] = calculateNextWaypoint;
-        //states["ahora"] = () => { Debug.Log("hey"); };
-
         initPositions();
-        actualWaypoint = 0;
+        actualWaypoint = 0;        
+
         initState("idle", idle);
         initState("goto", goToWaypoint);
         initState("nextwp", calculateNextWaypoint);
         
         setState(getState("idle"));
     }
-
-    // Update is called once per frame
+    
     void Update()
     {
         
