@@ -9,8 +9,14 @@ public class patrol : AI_Agent
     public int maxWaypoints = 10;
     int actualWaypoint = 0;
 
-    public float angularVelocity = 0.1f;
+    public float angularVelocity = 1f;
     public float speed = 1f;
+
+    public float halfAngle = 30.0f;
+    public float coneDistance = 5.0f;
+
+    private float maxAngle;
+    private float angleToGo;
 
     void initPositions()
     {
@@ -33,41 +39,101 @@ public class patrol : AI_Agent
             for (int i = 0; i < maxWaypoints; i++)
             {
                 Gizmos.DrawSphere(waypoints[i], 1.0f);
-            }
-        }
+            }            
+
+            Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y + transform.localScale.y, transform.position.z), 0.15f);
+            Gizmos.color = Color.blue;
+            Gizmos.DrawSphere(waypoints[actualWaypoint], 1.0f);
+
+            // Vision Cone
+            Vector3 rightSide = Quaternion.Euler(Vector3.up * halfAngle) * transform.forward * coneDistance;
+            Vector3 leftSide = Quaternion.Euler(Vector3.up * -halfAngle) * transform.forward * coneDistance;
+
+            Gizmos.color = Color.red;            
+
+            Gizmos.DrawLine(transform.position, transform.position + transform.forward * coneDistance);
+            Gizmos.DrawLine(transform.position, transform.position + rightSide);
+            Gizmos.DrawLine(transform.position, transform.position + leftSide);
+
+            Gizmos.DrawLine(transform.position + leftSide, transform.position + transform.forward * coneDistance);
+            Gizmos.DrawLine(transform.position + rightSide, transform.position + transform.forward * coneDistance);
+        }        
     }
 
     void idle()
     {
+        Debug.Log("Idle");
+        Gizmos.color = Color.red;
+
         if(Input.GetKeyDown(KeyCode.A))
         {
-            setState(getState("goto")) ;
+            setState(getState("goto"));
         }
     }
 
     void goToWaypoint()
     {
-        Debug.Log("Moving to waypoint");
+        Debug.Log("GoToWapoint");
+        Gizmos.color = Color.yellow;        
 
-        float maxAngle = Vector3.SignedAngle(Vector3.forward, waypoints[actualWaypoint] - transform.position, Vector3.up);
-        float angleToGo = Mathf.Min(angularVelocity * Mathf.Sign(maxAngle), maxAngle);
+        maxAngle = Vector3.SignedAngle(transform.forward, waypoints[actualWaypoint] - transform.position, Vector3.up);
+        angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));  
+        angleToGo *= Mathf.Sign(maxAngle);
 
-        transform.rotation = Quaternion.Euler(Vector3.up * angleToGo);
+        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
+            transform.rotation.eulerAngles.y + angleToGo,
+            transform.rotation.eulerAngles.z);
         
-        //float angleToGo = Mathf.Min(angularVelocity, Vector3.SignedAngle(Vector3.forward, waypoints[actualWaypoint] - transform.position, Vector3.up));
-        //transform.rotation = Quaternion.Euler(new Vector3(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + angleToGo, transform.rotation.eulerAngles.z));
+        if (Vector3.Distance(waypoints[actualWaypoint], transform.position) <= coneDistance &&
+            Vector3.Angle(transform.forward, waypoints[actualWaypoint]) <= halfAngle)
+        {
+            //speed = 0.05f;
+            transform.position += transform.forward * speed;            
+        }        
 
-        //transform.position += Vector3.forward * speed;
+        if (Vector3.Distance(waypoints[actualWaypoint], transform.position) < 0.1f)
+        {
+            //speed = 0f;
+            setState(getState("nextwp"));
+        }
+    }
 
-        //if ((waypoints[actualWaypoint] - transform.position).x <= 0.1)
-        //{
-        //    setState(getState("nextwp"));
-        //}
+    void goToTarget(Transform target)
+    {
+        Debug.Log("GoToTarget");        
+
+        maxAngle = Vector3.SignedAngle(transform.forward, target.position - transform.position, Vector3.up);
+        angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));
+        angleToGo *= Mathf.Sign(maxAngle);
+
+        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
+            transform.rotation.eulerAngles.y + angleToGo,
+            transform.rotation.eulerAngles.z);
+
+        if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
+            Vector3.Angle(transform.forward, target.position) <= halfAngle * 2)
+        {
+            //speed = 0.05f;
+            transform.position += transform.forward * speed;
+        }
+
+        if (Vector3.Distance(target.position, transform.position) < 0.1f)
+        {
+            //speed = 0f;
+            setState(getState("idle"));
+        }
     }
 
     void calculateNextWaypoint()
     {
+        Debug.Log("NextWaypoint");
+        Gizmos.color = Color.green;
+
+        if (actualWaypoint == waypoints.Length - 1)
+            actualWaypoint = 0;
+
         actualWaypoint++;
+        setState(getState("goto"));
     }
     
     void Start()
