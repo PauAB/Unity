@@ -5,15 +5,18 @@ using UnityEngine;
 public class patrol : AI_Agent
 {
     Vector3[] waypoints;
-    Transform target;
+    Color color;
+    public Transform target;
     public int maxWaypoints = 10;
     int actualWaypoint = 0;
 
     public float angularVelocity = 1f;
-    public float speed = 1f;
+    public float speed = 1f;    
 
     public float halfAngle = 30.0f;
     public float coneDistance = 5.0f;
+
+    public float orbitDistance;
 
     private float maxAngle;
     private float angleToGo;
@@ -39,11 +42,14 @@ public class patrol : AI_Agent
             for (int i = 0; i < maxWaypoints; i++)
             {
                 Gizmos.DrawSphere(waypoints[i], 1.0f);
-            }            
-
-            Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y + transform.localScale.y, transform.position.z), 0.15f);
+            }
+            
             Gizmos.color = Color.blue;
             Gizmos.DrawSphere(waypoints[actualWaypoint], 1.0f);
+            
+
+            Gizmos.color = color;
+            Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y + transform.localScale.y, transform.position.z), 0.25f);
 
             // Vision Cone
             Vector3 rightSide = Quaternion.Euler(Vector3.up * halfAngle) * transform.forward * coneDistance;
@@ -57,13 +63,15 @@ public class patrol : AI_Agent
 
             Gizmos.DrawLine(transform.position + leftSide, transform.position + transform.forward * coneDistance);
             Gizmos.DrawLine(transform.position + rightSide, transform.position + transform.forward * coneDistance);
+
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(transform.position, transform.position + transform.forward * orbitDistance);
         }        
     }
 
     void idle()
     {
-        Debug.Log("Idle");
-        Gizmos.color = Color.red;
+        color = Color.red;
 
         if(Input.GetKeyDown(KeyCode.A))
         {
@@ -73,8 +81,9 @@ public class patrol : AI_Agent
 
     void goToWaypoint()
     {
-        Debug.Log("GoToWapoint");
-        Gizmos.color = Color.yellow;        
+        color = Color.yellow;
+        coneDistance = 15f;
+        halfAngle = 30f;
 
         maxAngle = Vector3.SignedAngle(transform.forward, waypoints[actualWaypoint] - transform.position, Vector3.up);
         angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));  
@@ -83,24 +92,26 @@ public class patrol : AI_Agent
         transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
             transform.rotation.eulerAngles.y + angleToGo,
             transform.rotation.eulerAngles.z);
-        
-        if (Vector3.Distance(waypoints[actualWaypoint], transform.position) <= coneDistance &&
-            Vector3.Angle(transform.forward, waypoints[actualWaypoint]) <= halfAngle)
+
+        if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
+            Vector3.Angle(transform.forward, target.position - transform.position) <= halfAngle)
         {
-            //speed = 0.05f;
-            transform.position += transform.forward * speed;            
-        }        
+            setState(getState("target"));
+        }
+        else
+            transform.position += transform.forward * speed;
 
         if (Vector3.Distance(waypoints[actualWaypoint], transform.position) < 0.1f)
         {
-            //speed = 0f;
             setState(getState("nextwp"));
         }
     }
 
-    void goToTarget(Transform target)
+    void goToTarget()
     {
-        Debug.Log("GoToTarget");        
+        color = Color.yellow;
+        coneDistance = 20f;
+        halfAngle = 45f;
 
         maxAngle = Vector3.SignedAngle(transform.forward, target.position - transform.position, Vector3.up);
         angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));
@@ -111,23 +122,22 @@ public class patrol : AI_Agent
             transform.rotation.eulerAngles.z);
 
         if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
-            Vector3.Angle(transform.forward, target.position) <= halfAngle * 2)
+            Vector3.Angle(transform.forward, target.position - transform.position) <= halfAngle)
         {
-            //speed = 0.05f;
             transform.position += transform.forward * speed;
         }
+        else
+            setState(getState("goto"));
 
-        if (Vector3.Distance(target.position, transform.position) < 0.1f)
+        if (Vector3.Distance(target.position, transform.position) - orbitDistance < 0.1f)
         {
-            //speed = 0f;
-            setState(getState("idle"));
+            setState(getState("wait"));            
         }
     }
 
     void calculateNextWaypoint()
     {
-        Debug.Log("NextWaypoint");
-        Gizmos.color = Color.green;
+        color = Color.blue;        
 
         if (actualWaypoint == waypoints.Length - 1)
             actualWaypoint = 0;
@@ -135,7 +145,39 @@ public class patrol : AI_Agent
         actualWaypoint++;
         setState(getState("goto"));
     }
-    
+
+    void wait()
+    {
+        color = Color.red;
+
+        float nextState = Random.Range(0f, 100f);
+
+        Debug.Log(nextState);
+        
+        if (nextState <= 25f)
+        {
+            setState(getState("idle"));
+        }
+        else if (nextState >= 26f && nextState <= 50f)
+        {
+            setState(getState("orbit"));
+        }
+        else if (nextState >= 51f && nextState <= 100f)
+        {
+            setState(getState("fight"));
+        }
+    }
+
+    void orbit()
+    {
+        color = Color.green;
+    }
+
+    void fight()
+    {
+        color = Color.black;
+    }
+
     void Start()
     {
         initPositions();
@@ -144,6 +186,10 @@ public class patrol : AI_Agent
         initState("idle", idle);
         initState("goto", goToWaypoint);
         initState("nextwp", calculateNextWaypoint);
+        initState("target", goToTarget);
+        initState("wait", wait);
+        initState("orbit", orbit);
+        initState("fight", fight);
         
         setState(getState("idle"));
     }
