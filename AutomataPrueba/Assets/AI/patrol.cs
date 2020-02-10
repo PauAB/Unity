@@ -1,12 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class patrol : AI_Agent
 {
+    [SerializeField]
+    Transform target;
     Vector3[] waypoints;
-    Color color;
-    public Transform target;
+    Color color;    
     public int maxWaypoints = 10;
     int actualWaypoint = 0;
 
@@ -71,12 +71,30 @@ public class patrol : AI_Agent
 
     void idle()
     {
-        color = Color.red;
+        color = Color.black;
 
         if(Input.GetKeyDown(KeyCode.A))
         {
             setState(getState("goto"));
         }
+    }
+
+    void goTo(Vector3 pos)
+    {
+        maxAngle = Vector3.SignedAngle(transform.forward, pos - transform.position, Vector3.up);
+        angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));
+        angleToGo *= Mathf.Sign(maxAngle);
+
+        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
+            transform.rotation.eulerAngles.y + angleToGo,
+            transform.rotation.eulerAngles.z);
+
+        transform.position += transform.forward * speed;
+
+        if (!CheckInCone())
+            setState(getState("goto"));
+        else
+            setState(getState("target"));
     }
 
     void goToWaypoint()
@@ -85,26 +103,10 @@ public class patrol : AI_Agent
         coneDistance = 15f;
         halfAngle = 30f;
 
-        maxAngle = Vector3.SignedAngle(transform.forward, waypoints[actualWaypoint] - transform.position, Vector3.up);
-        angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));  
-        angleToGo *= Mathf.Sign(maxAngle);
-
-        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
-            transform.rotation.eulerAngles.y + angleToGo,
-            transform.rotation.eulerAngles.z);
-
-        if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
-            Vector3.Angle(transform.forward, target.position - transform.position) <= halfAngle)
-        {
-            setState(getState("target"));
-        }
-        else
-            transform.position += transform.forward * speed;
+        goTo(waypoints[actualWaypoint]);
 
         if (Vector3.Distance(waypoints[actualWaypoint], transform.position) < 0.1f)
-        {
-            setState(getState("nextwp"));
-        }
+            setState(getState("nextwp"));        
     }
 
     void goToTarget()
@@ -113,26 +115,10 @@ public class patrol : AI_Agent
         coneDistance = 20f;
         halfAngle = 45f;
 
-        maxAngle = Vector3.SignedAngle(transform.forward, target.position - transform.position, Vector3.up);
-        angleToGo = Mathf.Min(angularVelocity, Mathf.Abs(maxAngle));
-        angleToGo *= Mathf.Sign(maxAngle);
-
-        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x,
-            transform.rotation.eulerAngles.y + angleToGo,
-            transform.rotation.eulerAngles.z);
-
-        if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
-            Vector3.Angle(transform.forward, target.position - transform.position) <= halfAngle)
-        {
-            transform.position += transform.forward * speed;
-        }
-        else
-            setState(getState("goto"));
-
+        goTo(target.position);                
+            
         if (Vector3.Distance(target.position, transform.position) - orbitDistance < 0.1f)
-        {
-            setState(getState("wait"));            
-        }
+            setState(getState("wait"));
     }
 
     void calculateNextWaypoint()
@@ -148,7 +134,7 @@ public class patrol : AI_Agent
 
     void wait()
     {
-        color = Color.red;
+        color = Color.black;
 
         float nextState = Random.Range(0f, 100f);
 
@@ -168,14 +154,30 @@ public class patrol : AI_Agent
         }
     }
 
+    bool ChooseSide()
+    {
+        return true;
+    }
+
     void orbit()
     {
         color = Color.green;
+
+        ChooseSide();
     }
 
     void fight()
     {
-        color = Color.black;
+        color = Color.red;
+    }
+
+    bool CheckInCone()
+    {
+        if (Vector3.Distance(target.position, transform.position) <= coneDistance &&
+            Vector3.Angle(transform.forward, target.position - transform.position) <= halfAngle)
+            return true;
+        else
+            return false;
     }
 
     void Start()
